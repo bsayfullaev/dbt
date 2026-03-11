@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: stg_clickhouse__searches_localrent
+    description: >
+      Стейджинговая таблица поисков из ClickHouse.
+      Содержит по одному агрегированному событию поиска (search_id + session_id + search_uuid + timestamp)
+      с обогащённой информацией по датам, длительности аренды и признаками "первого" поиска.
+    columns:
+      - name: timestamp
+        description: >
+          Временная метка события поиска. Используется как часть бизнес-ключа и для инкрементальной загрузки.
+      - name: search_id
+        description: >
+          Идентификатор поиска, генерируется как md5 от набора входных условий (фильтров) поиска.
+      - name: session_id
+        description: >
+          Идентификатор сессии пользователя, берётся из куки session. Может быть пустым,
+          если это запрос из внешнего клиента без куков.
+      - name: search_uuid
+        description: >
+          Идентификатор поиска, присланный клиентом в параметре search_uuid. Используется для
+          связи с фронтовыми событиями и упорядочивания поисков в рамках сессии.
+      - name: pickup_place_id
+        description: >
+          Идентификатор места получения автомобиля (справочник places, поле id).
+      - name: pickup_city_id
+        description: >
+          Идентификатор города получения автомобиля (справочник cities, поле id).
+      - name: country_id
+        description: >
+          Идентификатор страны (справочник countries, поле id).
+      - name: aff_id
+        description: >
+          Идентификатор аффилиата, берётся из параметра запроса aff_id
+          или из куки mrc_last_affiliate, если параметр не был передан.
+      - name: referer
+        description: >
+          Полный REFERER запроса поиска. Помогает понимать источник трафика и путь пользователя.
+      - name: referer_host
+        description: >
+          Хост из REFERER без протокола и пути.
+      - name: referer_path
+        description: >
+          Путь из REFERER без протокола и хоста.
+      - name: pickup_date
+        description: >
+          Дата начала аренды, извлечённая из JSON-поля params (pickup_date).
+      - name: dropoff_date
+        description: >
+          Дата окончания аренды, извлечённая из JSON-поля params (dropoff_date).
+      - name: rent_duration
+        description: >
+          Длительность аренды в днях как разница между dropoff_date и pickup_date.
+      - name: rent_offset
+        description: >
+          Количество дней между датой поиска (timestamp) и датой начала аренды (pickup_date).
+      - name: is_initial_heu
+        description: >
+          Флаг "первого" поиска, рассчитанный по эвристике:
+          комбинации длительности аренды и отступа до начала аренды,
+          а также, при необходимости, ограниченный временным окном для экспериментальных периодов.
+      - name: is_initial_param
+        description: >
+          Флаг "первого" поиска, пришедший напрямую из источника (поле is_initial).
+      - name: is_initial_combined
+        description: >
+          Объединённый флаг "первого" поиска: истинный, если либо параметр is_initial,
+          либо эвристический флаг is_initial_heu равны 1.
+      - name: source
+        description: >
+          Идентификатор владельца API-ключа (наш фронтенд или сторонний клиент),
+          берётся из входящего параметра key.
+      - name: ab_flags
+        description: >
+          Сырые флаги A/B-экспериментов, извлечённые из JSON-поля params (ab_flags).
+      - name: user_ip
+        description: >
+          IP-адрес пользователя, взятый из запроса поиска.
+      - name: user_agent
+        description: >
+          USER_AGENT запроса поиска, используется для определения устройства и клиента.
+      - name: user_device
+        description: >
+          Тип устройства пользователя, рассчитанный по UserAgent.
+
